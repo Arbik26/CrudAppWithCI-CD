@@ -1,67 +1,142 @@
-using MongoDB.Bson;
-using MongoDB.Driver;
 using Microsoft.AspNetCore.Mvc;
-using CrudApp.Models;
 using CrudApp.Services;
+using CrudApp.Models;
 
-namespace CrudApp.Controllers
+namespace CrudApp.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ProductsController : ControllerBase
+    private readonly MongoDbService _mongoDbService;
+
+    public ProductsController(MongoDbService mongoDbService)
     {
-        private readonly IMongoCollection<Product> _productsCollection;
+        _mongoDbService = mongoDbService;
+    }
 
-        public ProductsController(MongoDbService mongoDbService)
+    // GET: api/products
+    [HttpGet]
+    public async Task<IActionResult> GetAllProducts()
+    {
+        try
         {
-            _productsCollection = mongoDbService.GetProductsCollection();
-        }
-
-        [HttpGet]
-        public async Task<ActionResult<List<Product>>> GetProducts()
-        {
-            var products = await _productsCollection.Find(_ => true).ToListAsync();
+            var products = await _mongoDbService.GetAllProductsAsync();
             return Ok(products);
         }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetProduct(string id)
+        catch (Exception ex)
         {
-            var filter = Builders<Product>.Filter.Eq(p => p.Id, new ObjectId(id));
-            var product = await _productsCollection.Find(filter).FirstOrDefaultAsync();
-            
-            if (product == null)
-                return NotFound();
-            
-            return Ok(product);
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<Product>> CreateProduct([FromBody] Product product)
-        {
-            await _productsCollection.InsertOneAsync(product);
-            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(string id, [FromBody] Product product)
-        {
-            var filter = Builders<Product>.Filter.Eq(p => p.Id, new ObjectId(id));
-            var update = Builders<Product>.Update
-                .Set(p => p.Name, product.Name)
-                .Set(p => p.Description, product.Description)
-                .Set(p => p.Price, product.Price);
-            
-            await _productsCollection.UpdateOneAsync(filter, update);
-            return Ok();
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(string id)
-        {
-            var filter = Builders<Product>.Filter.Eq(p => p.Id, new ObjectId(id));
-            await _productsCollection.DeleteOneAsync(filter);
-            return Ok();
+            return BadRequest($"Error: {ex.Message}");
         }
     }
+
+    // GET: api/products/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProductById(string id)
+    {
+        try
+        {
+            var product = await _mongoDbService.GetProductByIdAsync(id);
+            if (product == null)
+                return NotFound("Product not found");
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error: {ex.Message}");
+        }
+    }
+
+    // POST: api/products
+    [HttpPost]
+    public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return BadRequest("Product name is required");
+
+            var product = new Product
+            {
+                Name = request.Name,
+                Description = request.Description ?? "",
+                Price = request.Price
+            };
+
+            var id = await _mongoDbService.CreateProductAsync(product);
+            return CreatedAtAction(nameof(GetProductById), new { id }, product);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error: {ex.Message}");
+        }
+    }
+
+    // PUT: api/products/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProduct(string id, [FromBody] UpdateProductRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest("Product ID is required");
+
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return BadRequest("Product name is required");
+
+            var product = new Product
+            {
+                Name = request.Name,
+                Description = request.Description ?? "",
+                Price = request.Price
+            };
+
+            var result = await _mongoDbService.UpdateProductAsync(id, product);
+            
+            if (!result)
+                return NotFound("Product not found");
+
+            return Ok(new { message = "Product updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error: {ex.Message}");
+        }
+    }
+
+    // DELETE: api/products/{id}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProduct(string id)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest("Product ID is required");
+
+            var result = await _mongoDbService.DeleteProductAsync(id);
+            
+            if (!result)
+                return NotFound("Product not found");
+
+            return Ok(new { message = "Product deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error: {ex.Message}");
+        }
+    }
+}
+
+public class CreateProductRequest
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class UpdateProductRequest
+{
+    public string Name { get; set; }
+    public string Description { get; set; }
+    public decimal Price { get; set; }
 }
