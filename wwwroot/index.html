@@ -280,87 +280,99 @@
     </div>
 
     <script>
-        const API_URL = 'https://crudappwithci-cd-production.up.railway.app/api/products';
-        
-        // Load products on page load
-        document.addEventListener('DOMContentLoaded', loadProducts);
+    const API_URL = 'https://crudappwithci-cd-production.up.railway.app/api/products';
+    
+    // Load products on page load
+    document.addEventListener('DOMContentLoaded', loadProducts);
 
-        // Form submission
-        document.getElementById('addProductForm').addEventListener('submit', addProduct);
+    // Form submission
+    document.getElementById('addProductForm').addEventListener('submit', addProduct);
 
-        async function loadProducts() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Failed to load products');
-                
-                const products = await response.json();
-                const productsList = document.getElementById('productsList');
+    async function loadProducts() {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error('Failed to load products');
+            
+            const products = await response.json();
+            const productsList = document.getElementById('productsList');
 
-                if (products.length === 0) {
-                    productsList.innerHTML = '<div class="empty-state">No products yet. Add one to get started!</div>';
-                    return;
-                }
+            if (!products || products.length === 0) {
+                productsList.innerHTML = '<div class="empty-state">No products yet. Add one to get started!</div>';
+                return;
+            }
 
-                productsList.innerHTML = products.map(product => `
-                    <div class="product-card">
-                        <h3>${product.name}</h3>
-                        <p>${product.description}</p>
-                        <div class="product-price">$${product.price.toFixed(2)}</div>
-                        <div class="product-id">ID: ${product._id.timestamp}</div>
-                        <div class="product-actions">
-                            <button class="btn-delete" onclick="deleteProduct('${product._id.timestamp}')">🗑️ Delete</button>
-                        </div>
+            productsList.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <h3>${product.name || 'Unnamed'}</h3>
+                    <p>${product.description || 'No description'}</p>
+                    <div class="product-price">$${(product.price || 0).toFixed(2)}</div>
+                    <div class="product-id">ID: ${product._id || 'unknown'}</div>
+                    <div class="product-actions">
+                        <button class="btn-delete" onclick="deleteProduct('${product._id}')">🗑️ Delete</button>
                     </div>
-                `).join('');
-            } catch (error) {
-                document.getElementById('productsList').innerHTML = `<div class="error">Error loading products: ${error.message}</div>`;
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('productsList').innerHTML = `<div class="error">Error loading products: ${error.message}</div>`;
+        }
+    }
+
+    async function addProduct(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('productName').value.trim();
+        const description = document.getElementById('productDescription').value.trim();
+        const price = parseFloat(document.getElementById('productPrice').value);
+
+        if (!name || !price) {
+            showMessage('❌ Please fill in name and price!', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, price })
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error || 'Failed to add product');
             }
+
+            showMessage('✅ Product added successfully!', 'success');
+            document.getElementById('addProductForm').reset();
+            await loadProducts();
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage(`❌ Error: ${error.message}`, 'error');
         }
+    }
 
-        async function addProduct(e) {
-            e.preventDefault();
+    async function deleteProduct(id) {
+        if (!confirm('Are you sure you want to delete this product?')) return;
 
-            const name = document.getElementById('productName').value;
-            const description = document.getElementById('productDescription').value;
-            const price = parseFloat(document.getElementById('productPrice').value);
+        try {
+            const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Failed to delete product');
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, description, price })
-                });
-
-                if (!response.ok) throw new Error('Failed to add product');
-
-                showMessage('✅ Product added successfully!', 'success');
-                document.getElementById('addProductForm').reset();
-                loadProducts();
-            } catch (error) {
-                showMessage(`❌ Error: ${error.message}`, 'error');
-            }
+            showMessage('✅ Product deleted!', 'success');
+            await loadProducts();
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage(`❌ Error: ${error.message}`, 'error');
         }
+    }
 
-        async function deleteProduct(id) {
-            if (!confirm('Are you sure you want to delete this product?')) return;
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.className = type;
+        messageDiv.textContent = text;
+        setTimeout(() => messageDiv.textContent = '', 4000);
+    }
+</script>
 
-            try {
-                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('Failed to delete product');
-
-                showMessage('✅ Product deleted!', 'success');
-                loadProducts();
-            } catch (error) {
-                showMessage(`❌ Error: ${error.message}`, 'error');
-            }
-        }
-
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.className = type;
-            messageDiv.textContent = text;
-            setTimeout(() => messageDiv.textContent = '', 4000);
-        }
-    </script>
 </body>
 </html>
