@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
+using MongoDB.Driver;
+using Microsoft.AspNetCore.Mvc;
 using CrudApp.Models;
 using CrudApp.Services;
 
@@ -9,62 +10,58 @@ namespace CrudApp.Controllers
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
     {
-        private readonly MongoDbService _mongoService;
+        private readonly IMongoCollection<Product> _productsCollection;
 
-        public ProductsController(MongoDbService mongoService)
+        public ProductsController(MongoDbService mongoDbService)
         {
-            _mongoService = mongoService;
+            _productsCollection = mongoDbService.GetProductsCollection();
         }
 
-        // GET: api/products
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<List<Product>>> GetProducts()
         {
-            var collection = _mongoService.GetProductsCollection();
-            var products = await collection.Find(_ => true).ToListAsync();
+            var products = await _productsCollection.Find(_ => true).ToListAsync();
             return Ok(products);
         }
 
-        // GET: api/products/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(string id)
+        public async Task<ActionResult<Product>> GetProduct(string id)
         {
-            var collection = _mongoService.GetProductsCollection();
-            var product = await collection.Find(p => p.Id == ObjectId.Parse(id)).FirstOrDefaultAsync();
-            if (product == null) return NotFound();
+            var filter = Builders<Product>.Filter.Eq(p => p.Id, new ObjectId(id));
+            var product = await _productsCollection.Find(filter).FirstOrDefaultAsync();
+            
+            if (product == null)
+                return NotFound();
+            
             return Ok(product);
         }
 
-        // POST: api/products
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Product product)
+        public async Task<ActionResult<Product>> CreateProduct([FromBody] Product product)
         {
-            var collection = _mongoService.GetProductsCollection();
-            await collection.InsertOneAsync(product);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            await _productsCollection.InsertOneAsync(product);
+            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
 
-        // PUT: api/products/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, [FromBody] Product product)
+        public async Task<IActionResult> UpdateProduct(string id, [FromBody] Product product)
         {
-            var collection = _mongoService.GetProductsCollection();
-            var result = await collection.ReplaceOneAsync(
-                p => p.Id == ObjectId.Parse(id),
-                product
-            );
-            if (result.MatchedCount == 0) return NotFound();
-            return NoContent();
+            var filter = Builders<Product>.Filter.Eq(p => p.Id, new ObjectId(id));
+            var update = Builders<Product>.Update
+                .Set(p => p.Name, product.Name)
+                .Set(p => p.Description, product.Description)
+                .Set(p => p.Price, product.Price);
+            
+            await _productsCollection.UpdateOneAsync(filter, update);
+            return Ok();
         }
 
-        // DELETE: api/products/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(string id)
+        public async Task<IActionResult> DeleteProduct(string id)
         {
-            var collection = _mongoService.GetProductsCollection();
-            var result = await collection.DeleteOneAsync(p => p.Id == ObjectId.Parse(id));
-            if (result.DeletedCount == 0) return NotFound();
-            return NoContent();
+            var filter = Builders<Product>.Filter.Eq(p => p.Id, new ObjectId(id));
+            await _productsCollection.DeleteOneAsync(filter);
+            return Ok();
         }
     }
 }

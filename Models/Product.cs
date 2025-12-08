@@ -9,12 +9,12 @@ namespace CrudApp.Models
         public ObjectId Id { get; set; }
 
         [BsonElement("name")]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        [BsonElement("description")]
+        public string Description { get; set; } = string.Empty;
 
         [BsonElement("price")]
         public decimal Price { get; set; }
-
-        [BsonElement("description")]
-        public string Description { get; set; }
     }
 }
