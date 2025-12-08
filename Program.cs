@@ -3,7 +3,6 @@ using CrudApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Pobierz connection string (najpierw zmienną, potem appsettings)
 var mongoConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__MongoDb") 
     ?? builder.Configuration["ConnectionStrings:MongoDb"]
     ?? throw new InvalidOperationException("MongoDB connection string is not configured!");
@@ -20,6 +19,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Serve static files (HTML, CSS, JS)
+app.UseStaticFiles();
+
 app.UseCors("AllowAll");
 app.MapControllers();
+
+// Fallback to index.html for SPA routing
+app.MapFallbackToFile("index.html");
+
 app.Run();
