@@ -1,18 +1,24 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /src
-COPY CrudApp/CrudApp.csproj CrudApp/
-RUN dotnet restore CrudApp/CrudApp.csproj
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+WORKDIR /app
+
+# Kopiuj pliki projektu
+COPY CrudApp/CrudApp.csproj ./CrudApp/
 COPY . .
-WORKDIR /src/CrudApp
-RUN dotnet build CrudApp.csproj -c Release -o /app/build
 
-FROM build AS publish
-WORKDIR /src/CrudApp
-RUN dotnet publish CrudApp.csproj -c Release -o /app/publish
+# Restore i build
+WORKDIR /app/CrudApp
+RUN dotnet restore
+RUN dotnet build -c Release
 
+# Publish
+RUN dotnet publish -c Release -o /app/publish
+
+# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=0 /app/publish .
+
 EXPOSE 80
 ENV ASPNETCORE_URLS=http://+:80
+
 ENTRYPOINT ["dotnet", "CrudApp.dll"]
