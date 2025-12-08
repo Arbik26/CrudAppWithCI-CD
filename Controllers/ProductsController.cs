@@ -16,11 +16,21 @@ namespace CrudApp.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProducts()
-        {
-            var products = await _mongoDbService.GetAllProductsAsync();
-            return Ok(products);
-        }
+    public async Task<IActionResult> GetAllProducts()
+    {
+    var products = await _mongoDbService.GetAllProductsAsync();
+    
+    // Konwertuj na DTO z ID jako string
+    var productsDto = products.Select(p => new {
+        id = p.Id.ToString(),
+        p.Name,
+        p.Description,
+        p.Price
+    }).ToList();
+    
+    return Ok(productsDto);
+    }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(string id)
