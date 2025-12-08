@@ -1,0 +1,8 @@
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.csproj.AssemblyReference.cache
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.AssemblyInfoInputs.cache
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.AssemblyInfo.cs
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.csproj.CoreCompileInputs.cache
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Jakub\CrudAppWithCI-CD\CrudApp\obj\Debug\net8.0\CrudApp.sourcelink.json
